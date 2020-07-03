@@ -1,2 +1,2 @@
-# grayscale-cbr
-A solution to extract CBR comics and change each file to grayscale images.
+# grayscale-cbz
+A solution to extract comics from CBZ archives and change each file to a grayscale image.
