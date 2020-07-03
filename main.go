@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"flag"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"os"
 	"path/filepath"
 )
@@ -60,10 +62,52 @@ func main() {
 	defer r.Close()
 
 	for _, f := range r.File {
-		fmt.Println(f.Name)
-	}
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(*dest+"/"+f.Name, os.ModePerm)
+			continue
+		}
 
-	// grayscale images
-	// save to destination -> "original_name_GRAYSCALED20201001"
+		fmt.Println("===================================")
+		fmt.Printf("converting image: %s\n", f.Name)
+		f.Open()
+		zipped, err := f.Open()
+		if err != nil {
+			fmt.Printf("error reading '%s': %s\n", f.Name, err.Error())
+			continue
+		}
+
+		// grayscale images
+		img, _, err := image.Decode(zipped)
+		if err != nil {
+			fmt.Printf("error decoding image '%s': %s\n", f.Name, err.Error())
+			continue
+		}
+
+		// TODO revisit this
+		bounds := img.Bounds()
+		gray := image.NewGray(bounds)
+		for x := 0; x < bounds.Max.X; x++ {
+			for y := 0; y < bounds.Max.Y; y++ {
+				var rgba = img.At(x, y)
+				gray.Set(x, y, rgba)
+			}
+		}
+
+		// save to destination -> "original_name_GRAYSCALED20201001"
+		mockExt := ".jpg" // TODO parse extension
+		newFile := *dest + "/" + f.Name[0:len(f.Name)-len(mockExt)] + "_GRAYSCALED20201001" + mockExt
+		out, err := os.Create(newFile)
+		if err != nil {
+			fmt.Printf("error creating destination image path '%s': %s\n", newFile, err.Error())
+			continue
+		}
+		defer out.Close()
+
+		err = jpeg.Encode(out, gray, nil)
+		if err != nil {
+			fmt.Printf("error saving image at destination '%s': %s\n", newFile, err.Error())
+			continue
+		}
+	}
 
 }
