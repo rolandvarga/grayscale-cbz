@@ -8,18 +8,25 @@ import (
 	"image/jpeg"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
-
-// The execution steps of this program are to:
-// 1) take a CBZ file as input and extract its contents
-// 2) iterate through each file and turn into a grayscale image
-// 3) save new content into target directory
 
 func pathExists(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
 	}
 	return true
+}
+
+func parseExt(path string) string {
+	split := strings.Split(path, ".")
+	return "." + split[len(split)-1]
+}
+
+func today() string {
+	now := time.Now()
+	return now.Format("20060102")
 }
 
 func main() {
@@ -67,9 +74,7 @@ func main() {
 			continue
 		}
 
-		fmt.Println("===================================")
 		fmt.Printf("converting image: %s\n", f.Name)
-		f.Open()
 		zipped, err := f.Open()
 		if err != nil {
 			fmt.Printf("error reading '%s': %s\n", f.Name, err.Error())
@@ -83,19 +88,16 @@ func main() {
 			continue
 		}
 
-		// TODO revisit this
-		bounds := img.Bounds()
-		gray := image.NewGray(bounds)
-		for x := 0; x < bounds.Max.X; x++ {
-			for y := 0; y < bounds.Max.Y; y++ {
-				var rgba = img.At(x, y)
-				gray.Set(x, y, rgba)
+		gray := image.NewGray(img.Bounds())
+		for x := 0; x < img.Bounds().Max.X; x++ {
+			for y := 0; y < img.Bounds().Max.Y; y++ {
+				color := img.At(x, y)
+				gray.Set(x, y, color)
 			}
 		}
 
-		// save to destination -> "original_name_GRAYSCALED20201001"
-		mockExt := ".jpg" // TODO parse extension
-		newFile := *dest + "/" + f.Name[0:len(f.Name)-len(mockExt)] + "_GRAYSCALED20201001" + mockExt
+		newExt := parseExt(f.Name)
+		newFile := *dest + "/" + f.Name[0:len(f.Name)-len(newExt)] + "_GRAYSCALED_" + today() + newExt
 		out, err := os.Create(newFile)
 		if err != nil {
 			fmt.Printf("error creating destination image path '%s': %s\n", newFile, err.Error())
